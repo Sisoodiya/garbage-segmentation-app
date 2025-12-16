@@ -147,3 +147,4 @@ wandb/
 *.tmp
 *.temp
 *.bak
+.gradio/
