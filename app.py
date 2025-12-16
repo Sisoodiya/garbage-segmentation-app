@@ -2,9 +2,18 @@
 Garbage Segmentation App - Entry Point
 
 Launch the Gradio web interface for garbage detection and classification.
+Works both locally and on Hugging Face Spaces.
 """
 
-from models.gradio_app import launch_app
+import os
+
+# Check if running on Hugging Face Spaces
+IS_HF_SPACE = os.environ.get("SPACE_ID") is not None
+
+from models.gradio_app import create_interface, launch_app
+
+# Create the interface for HF Spaces (module-level for Gradio SDK)
+demo = create_interface()
 
 if __name__ == "__main__":
     import argparse
