@@ -74,7 +74,8 @@ class GarbageSegmentor:
         save: bool = False,
         save_dir: Optional[str] = None,
         stream: bool = False,
-        verbose: bool = False
+        verbose: bool = False,
+        augment: bool = True  # Enable TTA for better accuracy
     ):
         """
         Run inference on the given source.
@@ -85,6 +86,7 @@ class GarbageSegmentor:
             save_dir: Directory to save results (if save=True)
             stream: If True, return a generator for video/stream inputs
             verbose: Print detailed information during inference
+            augment: Enable Test-Time Augmentation for better accuracy
             
         Returns:
             Results object containing detections, masks, and metadata
@@ -96,7 +98,8 @@ class GarbageSegmentor:
             save=save,
             project=save_dir,
             stream=stream,
-            verbose=verbose
+            verbose=verbose,
+            augment=augment  # TTA enabled
         )
     
     def segment(

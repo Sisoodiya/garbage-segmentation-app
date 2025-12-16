@@ -215,3 +215,84 @@ def to_pil_image(image: np.ndarray) -> Image.Image:
 def from_pil_image(pil_image: Image.Image) -> np.ndarray:
     """Convert PIL Image to numpy array."""
     return np.array(pil_image)
+
+
+def enhance_image(
+    image: np.ndarray,
+    enhance_contrast: bool = True,
+    sharpen: bool = True,
+    denoise: bool = False
+) -> np.ndarray:
+    """
+    Enhance image quality for better detection accuracy.
+    
+    Args:
+        image: Input image (RGB or BGR)
+        enhance_contrast: Apply CLAHE contrast enhancement
+        sharpen: Apply sharpening filter
+        denoise: Apply denoising (slower but cleaner)
+        
+    Returns:
+        Enhanced image
+    """
+    result = image.copy()
+    
+    # Convert to LAB for contrast enhancement
+    if enhance_contrast:
+        # Convert to LAB color space
+        lab = cv2.cvtColor(result, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Apply CLAHE to L channel
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        l = clahe.apply(l)
+        
+        # Merge and convert back
+        lab = cv2.merge([l, a, b])
+        result = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+    
+    # Apply sharpening
+    if sharpen:
+        kernel = np.array([
+            [0, -1, 0],
+            [-1, 5, -1],
+            [0, -1, 0]
+        ], dtype=np.float32)
+        result = cv2.filter2D(result, -1, kernel)
+    
+    # Apply denoising (optional, slower)
+    if denoise:
+        result = cv2.fastNlMeansDenoisingColored(result, None, 10, 10, 7, 21)
+    
+    return result
+
+
+def auto_adjust_brightness(image: np.ndarray) -> np.ndarray:
+    """
+    Automatically adjust brightness based on image statistics.
+    
+    Args:
+        image: Input image (RGB)
+        
+    Returns:
+        Brightness-adjusted image
+    """
+    # Calculate mean brightness
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    mean_brightness = np.mean(gray)
+    
+    # Target brightness is around 127
+    target = 127
+    
+    if mean_brightness < 100:  # Too dark
+        factor = target / (mean_brightness + 1)
+        factor = min(factor, 2.0)  # Cap at 2x
+        result = cv2.convertScaleAbs(image, alpha=factor, beta=0)
+    elif mean_brightness > 180:  # Too bright
+        factor = target / mean_brightness
+        result = cv2.convertScaleAbs(image, alpha=factor, beta=0)
+    else:
+        result = image
+    
+    return result
+

@@ -23,6 +23,7 @@ except ImportError:
 
 from .yolo_segmentation import GarbageSegmentor
 from .utils.visualization import create_pie_chart, CLASS_NAMES, CLASS_COLORS
+from .utils.preprocessing import enhance_image, auto_adjust_brightness
 
 
 # Global model instance (lazy loading)
@@ -41,7 +42,8 @@ def get_segmentor() -> GarbageSegmentor:
 
 def process_image(
     image: np.ndarray,
-    confidence_threshold: float = 0.25
+    confidence_threshold: float = 0.25,
+    enable_enhancement: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, str]:
     """
     Process an image and return detection results.
@@ -49,12 +51,18 @@ def process_image(
     Args:
         image: Input image (RGB numpy array from Gradio)
         confidence_threshold: Detection confidence threshold
+        enable_enhancement: Apply image enhancement for better accuracy
         
     Returns:
         Tuple of (annotated_image, pie_chart, summary_text)
     """
     if image is None:
         return None, None, "Please upload an image."
+    
+    # Apply image enhancement if enabled
+    if enable_enhancement:
+        image = auto_adjust_brightness(image)
+        image = enhance_image(image, enhance_contrast=True, sharpen=True, denoise=False)
     
     # Get or initialize model
     segmentor = get_segmentor()
@@ -142,6 +150,12 @@ def create_interface() -> gr.Blocks:
                     info="Higher values = fewer but more confident detections"
                 )
                 
+                enhance_checkbox = gr.Checkbox(
+                    value=True,
+                    label="✨ Enable Image Enhancement",
+                    info="Improves accuracy for low-quality images (CLAHE + Sharpening)"
+                )
+                
                 detect_btn = gr.Button(
                     "🔍 Detect Garbage",
                     variant="primary",
@@ -216,14 +230,14 @@ def create_interface() -> gr.Blocks:
         # Event handlers
         detect_btn.click(
             fn=process_image,
-            inputs=[input_image, confidence_slider],
+            inputs=[input_image, confidence_slider, enhance_checkbox],
             outputs=[output_image, pie_chart, summary_output]
         )
         
         # Auto-detect on image upload
         input_image.change(
             fn=process_image,
-            inputs=[input_image, confidence_slider],
+            inputs=[input_image, confidence_slider, enhance_checkbox],
             outputs=[output_image, pie_chart, summary_output]
         )
     
